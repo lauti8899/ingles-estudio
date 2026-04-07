@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía de Repaso Personalizada: Dominando la Unidad 1</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Chosen Palette: Warm Neutrals (Stone/Amber) for background and structure, with deep Teal and Rose for focal points and contrast. -->
+<!-- Application Structure Plan: The application uses a side-navigation dashboard layout. This structure was chosen because it allows students to easily segment their study sessions into logical chunks (Overview, Grammar, Vocabulary, Practice) without losing track of their position. The content is presented progressively: first an overview of what needs to be studied, then the core rules, followed by vocabulary memorization via flip cards, and finally active recall testing via an accordion Q&A. This aligns with cognitive best practices for studying and reviewing material. -->
+<!-- Visualization & Content Choices: Dashboard Overview -> Goal: Inform -> Doughnut Chart (Chart.js) -> Interaction: Hover tooltips -> Justification: Provides a visual summary of the study workload and areas of focus. Library: Chart.js. Confirming NO SVG/Mermaid. Grammar Rules -> Goal: Organize -> Interactive Tabs & Toggle Blocks -> Interaction: Click to switch topics -> Justification: Prevents overwhelming the user with text. Vocabulary -> Goal: Organize/Inform -> CSS Flip Cards -> Interaction: Hover to reveal definition -> Justification: Active recall testing. Key Questions -> Goal: Test -> Accordion -> Interaction: Click to reveal answer -> Justification: Simulates flashcard testing. -->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: #f5f5f4;
+    color: #292524;
+}
+
+.chart-container {
+    position: relative;
+    width: 100%;
+    max-width: 450px;
+    margin-left: auto;
+    margin-right: auto;
+    height: 300px;
+    max-height: 350px;
+}
+
+@media (min-width: 768px) {
+    .chart-container {
+        height: 350px;
+    }
+}
+
+.flip-card {
+    background-color: transparent;
+    height: 160px;
+    perspective: 1000px;
+    cursor: pointer;
+}
+
+.flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+    transform-style: preserve-3d;
+}
+
+.flip-card:hover .flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+.flip-card-front, .flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.flip-card-front {
+    background-color: #ffffff;
+    border: 1px solid #e7e5e4;
+    color: #1c1917;
+}
+
+.flip-card-back {
+    background-color: #0f766e;
+    color: white;
+    transform: rotateY(180deg);
+}
+
+.nav-item.active {
+    background-color: #fef3c7;
+    color: #b45309;
+    font-weight: 600;
+    border-right: 4px solid #f59e0b;
+}
+
+.section-container {
+    display: none;
+    animation: fadeIn 0.4s ease-in-out forwards;
+}
+
+.section-container.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, padding 0.3s ease;
+}
+
+.accordion-content.open {
+    max-height: 200px;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #f5f5f4; 
+}
+::-webkit-scrollbar-thumb {
+    background: #d6d3d1; 
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #a8a29e; 
+}
+</style>
+</head>
+<body class="flex flex-col md:flex-row h-screen overflow-hidden">
+
+<nav class="w-full md:w-72 bg-white border-r border-stone-200 flex flex-col shadow-sm z-10 flex-shrink-0">
+    <div class="p-6 border-b border-stone-100 flex items-center gap-3">
+        <span class="text-3xl">&#128218;</span>
+        <div>
+            <h1 class="font-bold text-lg leading-tight text-stone-800">Guía de Repaso U1</h1>
+            <p class="text-xs text-stone-500 font-medium tracking-wide uppercase mt-1">Inglés - Personalizada</p>
+        </div>
+    </div>
+    <div class="flex flex-row md:flex-col overflow-x-auto md:overflow-visible p-4 gap-2 flex-grow">
+        <button onclick="navigate('resumen')" id="nav-resumen" class="nav-item active flex items-center gap-3 px-4 py-3 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors whitespace-nowrap md:whitespace-normal text-left">
+            <span class="text-xl">&#128202;</span> Resumen de Estudio
+        </button>
+        <button onclick="navigate('gramatica')" id="nav-gramatica" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors whitespace-nowrap md:whitespace-normal text-left">
+            <span class="text-xl">&#128221;</span> Reglas Gramaticales
+        </button>
+        <button onclick="navigate('vocabulario')" id="nav-vocabulario" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors whitespace-nowrap md:whitespace-normal text-left">
+            <span class="text-xl">&#128172;</span> Vocabulario Clave
+        </button>
+        <button onclick="navigate('practica')" id="nav-practica" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors whitespace-nowrap md:whitespace-normal text-left">
+            <span class="text-xl">&#9989;</span> Auto-Evaluación
+        </button>
+    </div>
+</nav>
+
+<main class="flex-1 overflow-y-auto p-6 md:p-10 lg:p-12 relative">
+
+    <section id="resumen" class="section-container active max-w-5xl mx-auto">
+        <header class="mb-10">
+            <h2 class="text-3xl md:text-4xl font-bold text-stone-800 mb-4 tracking-tight">Bienvenido a tu Espacio de Estudio</h2>
+            <p class="text-lg text-stone-600 leading-relaxed max-w-3xl">
+                Esta sección inicial te proporciona una vista estructurada de los temas que necesitas reforzar. Aquí podrás visualizar la distribución de los conceptos extraídos de tu práctica reciente. El objetivo es que entiendas tus áreas de enfoque antes de sumergirte en las reglas y ejercicios.
+            </p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-white rounded-2xl p-8 border border-stone-200 shadow-sm flex flex-col justify-center">
+                <h3 class="text-xl font-bold text-stone-800 mb-6 flex items-center gap-2">
+                    <span class="text-2xl">&#128269;</span> Foco de Aprendizaje
+                </h3>
+                <ul class="space-y-5">
+                    <li class="flex items-start gap-4">
+                        <div class="bg-teal-50 text-teal-600 p-2 rounded-lg mt-1">&#10004;</div>
+                        <div>
+                            <h4 class="font-bold text-stone-800">Estructura de Preguntas</h4>
+                            <p class="text-stone-500 text-sm mt-1">Corrección del uso del auxiliar Do/Does al formar interrogativas con Have got.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-4">
+                        <div class="bg-amber-50 text-amber-600 p-2 rounded-lg mt-1">&#10004;</div>
+                        <div>
+                            <h4 class="font-bold text-stone-800">Tercera Persona del Singular</h4>
+                            <p class="text-stone-500 text-sm mt-1">Concordancia correcta de auxiliares (Has, Doesn't) para He, She, It.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-4">
+                        <div class="bg-rose-50 text-rose-600 p-2 rounded-lg mt-1">&#10004;</div>
+                        <div>
+                            <h4 class="font-bold text-stone-800">Posición de Adverbios</h4>
+                            <p class="text-stone-500 text-sm mt-1">Ubicación exacta según el tipo de verbo (Acción vs To Be).</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="bg-white rounded-2xl p-8 border border-stone-200 shadow-sm flex flex-col items-center justify-center">
+                <h3 class="text-lg font-bold text-stone-800 mb-2 w-full text-center">Distribución del Material de Repaso</h3>
+                <p class="text-sm text-stone-500 mb-6 text-center">Basado en tus áreas de mejora de la Unidad 1</p>
+                <div class="chart-container">
+                    <canvas id="overviewChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="gramatica" class="section-container max-w-5xl mx-auto">
+        <header class="mb-10">
+            <h2 class="text-3xl md:text-4xl font-bold text-stone-800 mb-4 tracking-tight">Reglas Gramaticales Clave</h2>
+            <p class="text-lg text-stone-600 leading-relaxed max-w-3xl">
+                En esta sección explorarás los fundamentos estructurales del idioma. Hemos organizado los conceptos en tarjetas interactivas para facilitar su lectura. Navega entre las pestañas para revisar la regla de posesión, las rutinas y los adverbios. Presta especial atención a la "Regla de Oro".
+            </p>
+        </header>
+
+        <div class="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden flex flex-col md:flex-row">
+            <div class="w-full md:w-1/3 bg-stone-50 border-b md:border-b-0 md:border-r border-stone-200 p-4 space-y-2">
+                <button onclick="switchGrammar('havegot')" id="btn-grammar-havegot" class="w-full text-left px-5 py-4 rounded-xl font-bold text-teal-800 bg-teal-100 transition-colors">
+                    1. Posesión: Have got
+                </button>
+                <button onclick="switchGrammar('present')" id="btn-grammar-present" class="w-full text-left px-5 py-4 rounded-xl font-semibold text-stone-600 hover:bg-stone-200 transition-colors">
+                    2. Presente Simple
+                </button>
+                <button onclick="switchGrammar('adverbs')" id="btn-grammar-adverbs" class="w-full text-left px-5 py-4 rounded-xl font-semibold text-stone-600 hover:bg-stone-200 transition-colors">
+                    3. Adverbios
+                </button>
+            </div>
+
+            <div class="w-full md:w-2/3 p-8 min-h-[400px]">
+                <div id="content-havegot" class="grammar-content block">
+                    <div class="flex items-center gap-3 mb-6">
+                        <span class="text-3xl">&#128273;</span>
+                        <h3 class="text-2xl font-bold text-stone-800">La Regla de Oro de "Have got"</h3>
+                    </div>
+                    
+                    <p class="text-stone-600 mb-6">Esta estructura se utiliza para expresar posesión o características. El error más común es intentar usar auxiliares de rutina (Do/Does).</p>
+                    
+                    <div class="bg-rose-50 border border-rose-200 rounded-xl p-5 mb-6 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-rose-200 text-rose-800 text-xs font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wide">Incorrecto</div>
+                        <p class="text-rose-900 font-medium flex items-center gap-2 mt-2">
+                            <span class="text-xl">&#10060;</span> Do you have got keys?
+                        </p>
+                        <p class="text-rose-700 text-sm mt-2">Nunca uses el auxiliar Do o Does junto con la palabra got.</p>
+                    </div>
+
+                    <div class="bg-teal-50 border border-teal-200 rounded-xl p-5 mb-8 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-teal-200 text-teal-800 text-xs font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wide">Correcto</div>
+                        <p class="text-teal-900 font-medium flex items-center gap-2 mt-2">
+                            <span class="text-xl">&#9989;</span> Have you got keys?
+                        </p>
+                        <p class="text-teal-700 text-sm mt-2">Para preguntar, simplemente mueve el Have o Has al comienzo de la oración.</p>
+                    </div>
+
+                    <h4 class="font-bold text-stone-800 mb-4 border-b border-stone-200 pb-2">Concordancia de Sujeto</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-stone-50 p-4 rounded-lg border border-stone-200">
+                            <span class="block font-bold text-stone-800 mb-1">Has got</span>
+                            <span class="text-sm text-stone-600">Para He, She, It o sujetos singulares.</span>
+                            <code class="block mt-2 text-xs bg-white p-2 rounded text-stone-800">Has she got a pass?</code>
+                        </div>
+                        <div class="bg-stone-50 p-4 rounded-lg border border-stone-200">
+                            <span class="block font-bold text-stone-800 mb-1">Have got</span>
+                            <span class="text-sm text-stone-600">Para I, You, We, They o plurales.</span>
+                            <code class="block mt-2 text-xs bg-white p-2 rounded text-stone-800">Have they got keys?</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="content-present" class="grammar-content hidden">
+                    <div class="flex items-center gap-3 mb-6">
+                        <span class="text-3xl">&#9200;</span>
+                        <h3 class="text-2xl font-bold text-stone-800">Presente Simple Negativo</h3>
+                    </div>
+                    
+                    <p class="text-stone-600 mb-6">Al negar acciones rutinarias (verbos que no son To Be ni Have got), dependemos completamente de los auxiliares. Aquí la regla cambia respecto a las oraciones afirmativas.</p>
+
+                    <div class="space-y-6">
+                        <div class="bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-xl">
+                            <h4 class="font-bold text-amber-900 mb-2">Tercera Persona (He, She, It)</h4>
+                            <p class="text-amber-800 text-sm mb-3">Utilizamos el auxiliar <strong>Doesn't</strong>. ¡Atención! El verbo principal vuelve a su forma base y <strong>no lleva 's'</strong>.</p>
+                            <div class="bg-white px-4 py-3 rounded border border-amber-200 font-mono text-stone-800 text-sm shadow-sm flex items-center justify-between">
+                                <span>He doesn't play rugby.</span>
+                                <span class="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded">Correcto</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-stone-50 border-l-4 border-stone-400 p-5 rounded-r-xl">
+                            <h4 class="font-bold text-stone-800 mb-2">Resto de Sujetos (I, You, We, They)</h4>
+                            <p class="text-stone-600 text-sm mb-3">Utilizamos el auxiliar <strong>Don't</strong>. El verbo principal se mantiene en su forma base.</p>
+                            <div class="bg-white px-4 py-3 rounded border border-stone-200 font-mono text-stone-800 text-sm shadow-sm flex items-center justify-between">
+                                <span>They don't play hockey.</span>
+                                <span class="text-xs bg-stone-200 text-stone-700 px-2 py-1 rounded">Correcto</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="content-adverbs" class="grammar-content hidden">
+                    <div class="flex items-center gap-3 mb-6">
+                        <span class="text-3xl">&#128200;</span>
+                        <h3 class="text-2xl font-bold text-stone-800">Adverbios de Frecuencia</h3>
+                    </div>
+                    
+                    <p class="text-stone-600 mb-8">Estos adverbios modifican la oración para indicar con qué regularidad ocurre un evento. La dificultad radica en que su posición cambia dependiendo de quién sea el verbo principal.</p>
+
+                    <div class="grid gap-6">
+                        <div class="border border-stone-200 rounded-xl overflow-hidden shadow-sm">
+                            <div class="bg-stone-100 px-5 py-3 border-b border-stone-200 font-bold text-stone-800 flex justify-between items-center">
+                                <span>Verbos de Acción</span>
+                                <span class="text-xl">&#127939;</span>
+                            </div>
+                            <div class="p-5 bg-white">
+                                <p class="text-sm text-stone-600 mb-4">El adverbio se coloca <strong>antes</strong> del verbo principal.</p>
+                                <div class="bg-stone-50 p-4 rounded text-center font-mono border border-stone-100">
+                                    I <strong class="text-teal-600 bg-teal-50 px-2 py-1 rounded">never</strong> go
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border border-stone-200 rounded-xl overflow-hidden shadow-sm">
+                            <div class="bg-stone-100 px-5 py-3 border-b border-stone-200 font-bold text-stone-800 flex justify-between items-center">
+                                <span>Verbo To Be (am/is/are)</span>
+                                <span class="text-xl">&#129485;</span>
+                            </div>
+                            <div class="p-5 bg-white">
+                                <p class="text-sm text-stone-600 mb-4">El adverbio se coloca <strong>después</strong> del verbo To Be.</p>
+                                <div class="bg-stone-50 p-4 rounded text-center font-mono border border-stone-100">
+                                    I am <strong class="text-teal-600 bg-teal-50 px-2 py-1 rounded">often</strong> busy
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="vocabulario" class="section-container max-w-6xl mx-auto">
+        <header class="mb-10 text-center md:text-left">
+            <h2 class="text-3xl md:text-4xl font-bold text-stone-800 mb-4 tracking-tight">Vocabulario Dinámico</h2>
+            <p class="text-lg text-stone-600 leading-relaxed max-w-3xl mx-auto md:mx-0">
+                El aprendizaje de vocabulario requiere recuerdo activo. Aquí tienes las palabras clave extraídas de tus errores y la guía de estudio. <strong>Pasa el cursor por encima</strong> de cada tarjeta (o toca en dispositivos móviles) para revelar la definición y comprobar tu conocimiento.
+            </p>
+        </header>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="vocab-grid">
+        </div>
+    </section>
+
+    <section id="practica" class="section-container max-w-4xl mx-auto">
+        <header class="mb-10">
+            <h2 class="text-3xl md:text-4xl font-bold text-stone-800 mb-4 tracking-tight">Auto-Evaluación</h2>
+            <p class="text-lg text-stone-600 leading-relaxed">
+                Esta es la prueba final. Estas preguntas fueron creadas específicamente para abordar los conceptos que te resultaron más desafiantes. Intenta responder mentalmente antes de hacer clic para revelar la respuesta correcta.
+            </p>
+        </header>
+
+        <div class="space-y-4" id="qa-container">
+        </div>
+    </section>
+
+</main>
+
+<script>
+    const vocabData = [
+        { word: "Gymnastics", def: "Deporte que requiere gran flexibilidad y saltos.", icon: "&#129432;" },
+        { word: "Tough", def: "Adjetivo para describir algo difícil, duro o resistente.", icon: "&#128170;" },
+        { word: "Make videos", def: "Creación de contenido audiovisual (no se usa 'do').", icon: "&#128249;" },
+        { word: "Rugby", def: "Deporte de equipo mencionado en la unidad.", icon: "&#127945;" },
+        { word: "On your own", def: "Expresión que significa hacer algo solo o por cuenta propia.", icon: "&#128100;" },
+        { word: "Often / Rarely", def: "Adverbios que indican 'a menudo' y 'rara vez' respectivamente.", icon: "&#9203;" }
+    ];
+
+    const qaData = [
+        { q: "¿Cómo transformarías 'She has got a bus pass' en pregunta?", a: "Has she got a bus pass?" },
+        { q: "¿Cuál es el error en 'They doesn't play hockey'?", a: "El sujeto 'They' requiere el auxiliar plural 'don't'." },
+        { q: "¿Cómo se dice 'navegar por internet' o 'chatear en línea' en inglés?", a: "Chat online o Surf the web." },
+        { q: "Si un amigo te pregunta 'Have you got headphones?', ¿cuál es la respuesta corta afirmativa?", a: "Yes, I have (sin agregar el 'got')." }
+    ];
+
+    let chartInstance = null;
+
+    function renderVocab() {
+        const container = document.getElementById('vocab-grid');
+        vocabData.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'flip-card';
+            card.innerHTML = `
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <span class="text-4xl mb-3">${item.icon}</span>
+                        <h3 class="text-xl font-bold text-stone-800">${item.word}</h3>
+                        <p class="text-xs text-stone-400 mt-2 uppercase tracking-wide font-semibold">Desliza para ver</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <p class="text-base font-medium leading-relaxed">${item.def}</p>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function renderQA() {
+        const container = document.getElementById('qa-container');
+        qaData.forEach((item, index) => {
+            const el = document.createElement('div');
+            el.className = 'bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden';
+            el.innerHTML = `
+                <button onclick="toggleAccordion(${index})" class="w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none hover:bg-stone-50 transition-colors">
+                    <span class="font-bold text-stone-800 text-lg pr-4 flex items-start gap-3">
+                        <span class="text-amber-500 mt-1">&#10067;</span> ${item.q}
+                    </span>
+                    <span id="icon-qa-${index}" class="text-stone-400 transform transition-transform duration-300 text-xl">&#9662;</span>
+                </button>
+                <div id="content-qa-${index}" class="accordion-content bg-stone-50 border-t border-stone-100 px-6">
+                    <div class="flex items-start gap-3">
+                        <span class="text-teal-600 mt-1">&#10004;</span>
+                        <p class="text-stone-700 font-medium">${item.a}</p>
+                    </div>
+                </div>
+            `;
+            container.appendChild(el);
+        });
+    }
+
+    function toggleAccordion(index) {
+        const content = document.getElementById(`content-qa-${index}`);
+        const icon = document.getElementById(`icon-qa-${index}`);
+        
+        if (content.classList.contains('open')) {
+            content.classList.remove('open');
+            icon.style.transform = 'rotate(0deg)';
+        } else {
+            content.classList.add('open');
+            icon.style.transform = 'rotate(180deg)';
+        }
+    }
+
+    function navigate(sectionId) {
+        document.querySelectorAll('.nav-item').forEach(el => {
+            el.classList.remove('active', 'bg-amber-100', 'text-amber-800', 'border-amber-500');
+            el.classList.add('text-stone-600', 'hover:bg-stone-50');
+            el.style.borderRight = 'none';
+            el.style.backgroundColor = 'transparent';
+        });
+
+        const activeNav = document.getElementById(`nav-${sectionId}`);
+        activeNav.classList.add('active');
+        activeNav.classList.remove('text-stone-600', 'hover:bg-stone-50');
+
+        document.querySelectorAll('.section-container').forEach(el => {
+            el.classList.remove('active');
+        });
+
+        document.getElementById(sectionId).classList.add('active');
+
+        if (sectionId === 'resumen' && !chartInstance) {
+            initChart();
+        }
+    }
+
+    function switchGrammar(tab) {
+        document.querySelectorAll('[id^="btn-grammar-"]').forEach(btn => {
+            btn.classList.remove('bg-teal-100', 'text-teal-800', 'font-bold');
+            btn.classList.add('text-stone-600', 'hover:bg-stone-200', 'font-semibold');
+        });
+        
+        const activeBtn = document.getElementById(`btn-grammar-${tab}`);
+        activeBtn.classList.remove('text-stone-600', 'hover:bg-stone-200', 'font-semibold');
+        activeBtn.classList.add('bg-teal-100', 'text-teal-800', 'font-bold');
+
+        document.querySelectorAll('.grammar-content').forEach(content => {
+            content.classList.add('hidden');
+            content.classList.remove('block');
+        });
+        
+        const activeContent = document.getElementById(`content-${tab}`);
+        activeContent.classList.remove('hidden');
+        activeContent.classList.add('block');
+    }
+
+    function initChart() {
+        const ctx = document.getElementById('overviewChart').getContext('2d');
+        chartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Reglas de Gramática', 'Términos de Vocabulario', 'Preguntas de Repaso'],
+                datasets: [{
+                    data: [4, 6, 4],
+                    backgroundColor: [
+                        '#0f766e', 
+                        '#f59e0b', 
+                        '#e11d48'  
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '75%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            font: {
+                                family: "'Plus Jakarta Sans', sans-serif",
+                                size: 12
+                            },
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map(function(label, i) {
+                                        let wrappedLabel = label;
+                                        if (label.length > 16) {
+                                            wrappedLabel = label.substring(0, 16) + '...';
+                                        }
+                                        const meta = chart.getDatasetMeta(0);
+                                        const style = meta.controller.getStyle(i);
+                                        return {
+                                            text: wrappedLabel,
+                                            fillStyle: style.backgroundColor,
+                                            strokeStyle: style.borderColor,
+                                            lineWidth: style.borderWidth,
+                                            hidden: isNaN(data.datasets[0].data[i]) || meta.data[i].hidden,
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(28, 25, 23, 0.9)',
+                        padding: 12,
+                        titleFont: { size: 13, family: "'Plus Jakarta Sans', sans-serif" },
+                        bodyFont: { size: 14, font: 'bold', family: "'Plus Jakarta Sans', sans-serif" },
+                        callbacks: {
+                            label: function(context) {
+                                return ' ' + context.raw + ' elementos clave';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        renderVocab();
+        renderQA();
+        initChart();
+    });
+
+</script>
+</body>
+</html>
